@@ -22,10 +22,10 @@
     "test:engine": "node scripts/test-engine.js",
     "icon": "node scripts/make-icon.js",
     "native:status": "node scripts/native-deps.js status",
-    "dist:mac:arm64": "node scripts/native-deps.js ensure darwin arm64 && node scripts/native-deps.js prune darwin arm64 && electron-builder --mac --arm64",
-    "dist:mac:x64": "node scripts/native-deps.js ensure darwin x64 && node scripts/native-deps.js prune darwin x64 && electron-builder --mac --x64",
+    "dist:mac:arm64": "node scripts/native-deps.js ensure darwin arm64 && node scripts/native-deps.js prune darwin arm64 && electron-builder --mac --arm64 --publish never",
+    "dist:mac:x64": "node scripts/native-deps.js ensure darwin x64 && node scripts/native-deps.js prune darwin x64 && electron-builder --mac --x64 --publish never",
     "dist:mac": "npm run dist:mac:arm64 && npm run dist:mac:x64 && npm run restore:dev",
-    "dist:win": "node scripts/native-deps.js ensure win32 x64 && node scripts/native-deps.js prune win32 x64 && electron-builder --win --x64",
+    "dist:win": "node scripts/native-deps.js ensure win32 x64 && node scripts/native-deps.js prune win32 x64 && electron-builder --win --x64 --publish never",
     "dist": "npm run dist:mac && npm run dist:win && npm run restore:dev",
     "restore:dev": "node scripts/native-deps.js ensure darwin arm64 && node scripts/native-deps.js prune darwin arm64"
   },
