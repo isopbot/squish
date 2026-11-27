@@ -1,0 +1,112 @@
+{
+  "name": "squish",
+  "productName": "Squish",
+  "version": "1.0.0",
+  "description": "Squish · 本地批量图片压缩工具（多格式无损压缩）",
+  "main": "src/main/index.js",
+  "author": "Squish contributors",
+  "license": "MIT",
+  "private": false,
+  "keywords": [
+    "image-compression",
+    "tinypng",
+    "electron",
+    "sharp",
+    "lossless",
+    "webp",
+    "avif"
+  ],
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev",
+    "test:engine": "node scripts/test-engine.js",
+    "icon": "node scripts/make-icon.js",
+    "dist:mac": "electron-builder --mac",
+    "dist:win": "node scripts/prepare-win-deps.js && electron-builder --win",
+    "dist": "electron-builder --mac --win"
+  },
+  "dependencies": {
+    "sharp": "^0.33.5",
+    "svgo": "^4.1.0"
+  },
+  "devDependencies": {
+    "electron": "^45.5.0",
+    "electron-builder": "^26.18.0"
+  },
+  "build": {
+    "appId": "com.squish.image",
+    "productName": "Squish",
+    "copyright": "Copyright © 2026 Squish",
+    "asar": true,
+    "asarUnpack": [
+      "**/node_modules/sharp/**",
+      "**/node_modules/@img/**"
+    ],
+    "files": [
+      "src/**/*",
+      "package.json",
+      "!**/*.map"
+    ],
+    "directories": {
+      "buildResources": "build",
+      "output": "release"
+    },
+    "mac": {
+      "category": "public.app-category.photography",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        }
+      ],
+      "identity": null,
+      "darkModeSupport": true
+    },
+    "dmg": {
+      "window": {
+        "width": 540,
+        "height": 380
+      },
+      "contents": [
+        {
+          "x": 140,
+          "y": 190
+        },
+        {
+          "x": 400,
+          "y": 190,
+          "type": "link",
+          "path": "/Applications"
+        }
+      ]
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "shortcutName": "Squish"
+    },
+    "portable": {
+      "artifactName": "Squish-${version}-portable.exe"
+    }
+  }
+}

@@ -1,0 +1,17 @@
+# 依赖
+node_modules/
+
+# 构建产物
+release/
+dist/
+.cache/
+
+# 引擎自测生成的样本
+.samples/
+
+# 系统与编辑器
+.DS_Store
+Thumbs.db
+*.log
+.idea/
+.vscode/

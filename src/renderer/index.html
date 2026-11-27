@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self';" />
+<title>Squish</title>
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<header class="titlebar" id="titlebar">
+  <div class="brand">
+    <svg class="mark" viewBox="0 0 32 32" aria-hidden="true">
+      <defs>
+        <linearGradient id="g1" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#2ad9a3" />
+          <stop offset="1" stop-color="#0a9d7d" />
+        </linearGradient>
+      </defs>
+      <rect x="0" y="0" width="32" height="32" rx="9" fill="url(#g1)" />
+      <path d="M16 8.5v4.6M16 8.5l-2.6 2.6M16 8.5l2.6 2.6" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity=".95"/>
+      <path d="M16 23.5v-4.6M16 23.5l-2.6-2.6M16 23.5l2.6-2.6" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity=".95"/>
+      <path d="M11 16h10" stroke="#fff" stroke-width="2" stroke-linecap="round" opacity=".55"/>
+    </svg>
+    <div class="brand-text">
+      <span class="brand-name">Squish</span>
+      <span class="brand-tag">图片压缩</span>
+    </div>
+  </div>
+
+  <div class="titlebar-fill"></div>
+
+  <div class="titlebar-actions">
+    <button class="btn btn-ghost" id="btnAddFolder" title="选择文件夹（⌘⇧O）">
+      <svg viewBox="0 0 20 20" class="ico"><path d="M2.5 5.5A1.5 1.5 0 0 1 4 4h3.2c.4 0 .8.16 1.06.44L9.5 5.7h6A1.5 1.5 0 0 1 17 7.2v7.3A1.5 1.5 0 0 1 15.5 16h-11A1.5 1.5 0 0 1 3 14.5v-9Z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+      文件夹
+    </button>
+    <button class="btn btn-primary" id="btnAddFiles" title="选择图片（⌘O）">
+      <svg viewBox="0 0 20 20" class="ico"><path d="M10 4.5v11M4.5 10h11" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      添加图片
+    </button>
+    <button class="icon-btn" id="btnTheme" title="切换外观">
+      <svg viewBox="0 0 20 20" class="ico"><path id="themeIcon" d="M10 3.2a6.8 6.8 0 1 0 0 13.6 6.8 6.8 0 0 0 0-13.6Zm0 0v13.6" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
+    </button>
+  </div>
+</header>
+
+<main class="workspace">
+  <section class="content">
+
+    <div class="dropstrip" id="dropzone" hidden>
+      <svg viewBox="0 0 24 24" class="ico" aria-hidden="true"><path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>把图片或文件夹拖到这里，继续添加</span>
+    </div>
+
+    <div class="stats" id="stats" hidden>
+      <div class="stat">
+        <span class="stat-k">图片</span>
+        <span class="stat-v" id="statCount">0</span>
+      </div>
+      <div class="stat">
+        <span class="stat-k">原始大小</span>
+        <span class="stat-v" id="statIn">0 B</span>
+      </div>
+      <div class="stat">
+        <span class="stat-k">压缩后</span>
+        <span class="stat-v" id="statOut">—</span>
+      </div>
+      <div class="stat stat-hl">
+        <span class="stat-k">节省</span>
+        <span class="stat-v" id="statSaved">—</span>
+        <span class="stat-sub" id="statSavedSub"></span>
+      </div>
+      <div class="stat">
+        <span class="stat-k">进度</span>
+        <span class="stat-v" id="statProgress">0 / 0</span>
+      </div>
+    </div>
+
+    <div class="empty" id="empty">
+      <div class="empty-art">
+        <svg viewBox="0 0 96 96" aria-hidden="true">
+          <rect x="10" y="18" width="46" height="46" rx="10" fill="#0f9d77" opacity=".10"/>
+          <rect x="34" y="30" width="46" height="46" rx="10" fill="#0f9d77" opacity=".16"/>
+          <path d="M57 44v14m0 0-5-5m5 5 5-5" stroke="#0f9d77" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          <path d="M30 55v-9m0 0-4 4m4-4 4 4" stroke="#0f9d77" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity=".7"/>
+        </svg>
+      </div>
+      <h2>拖入图片或文件夹，开始压缩</h2>
+      <p>支持 JPG · PNG · WebP · AVIF · GIF · TIFF · BMP · SVG<br />全部在本地处理，不上传任何文件</p>
+      <div class="empty-actions">
+        <button class="btn btn-primary btn-lg" id="btnEmptyFiles">选择图片</button>
+        <button class="btn btn-lg" id="btnEmptyFolder">选择文件夹</button>
+      </div>
+      <div class="empty-tip">也可以按 <kbd>⌘</kbd> <kbd>O</kbd> 选择图片</div>
+    </div>
+
+    <div class="listwrap" id="listwrap" hidden>
+      <div class="listhead">
+        <span class="c-file">文件</span>
+        <span class="c-in">原始</span>
+        <span class="c-out">压缩后</span>
+        <span class="c-save">节省</span>
+        <span class="c-state">状态</span>
+        <span class="c-act"></span>
+      </div>
+      <div class="list" id="list"></div>
+      <div class="listnote" id="listNote" hidden></div>
+    </div>
+  </section>
+
+  <aside class="side" id="side">
+    <div class="side-scroll">
+      <div class="side-head">
+        <h3>压缩设置</h3>
+        <button class="link-btn" id="btnReset">恢复默认</button>
+      </div>
+
+      <div class="group">
+        <div class="seg seg-3" id="modeGroup">
+          <button class="seg-btn is-on" data-mode="smart">智能</button>
+          <button class="seg-btn" data-mode="lossless">无损</button>
+          <button class="seg-btn" data-mode="custom">自定义</button>
+        </div>
+        <p class="hint" id="modeHint">视觉无损：肉眼几乎看不出差别，压缩率最高。</p>
+      </div>
+
+      <div class="group" id="levelWrap">
+        <label class="glabel">压缩强度</label>
+        <div class="seg seg-3" id="levelGroup">
+          <button class="seg-btn" data-level="1">轻度</button>
+          <button class="seg-btn is-on" data-level="2">标准</button>
+          <button class="seg-btn" data-level="3">极限</button>
+        </div>
+        <p class="hint" id="levelHint">JPEG 78 · WebP 82 · AVIF 55 · PNG 256 色</p>
+      </div>
+
+      <div class="group" id="qualityWrap" hidden>
+        <label class="glabel">质量 <span class="glabel-v" id="qualityVal">78</span></label>
+        <input type="range" id="quality" min="30" max="100" step="1" value="78" class="range" />
+        <p class="hint" id="qualityHint"></p>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="group">
+        <label class="glabel" for="targetFormat">输出格式</label>
+        <select class="select" id="targetFormat">
+          <option value="keep">保持原格式</option>
+          <option value="webp">转为 WebP（推荐）</option>
+          <option value="avif">转为 AVIF（体积最小）</option>
+          <option value="jpeg">转为 JPEG</option>
+          <option value="png">转为 PNG</option>
+        </select>
+      </div>
+
+      <div class="group">
+        <label class="glabel">尺寸上限 <span class="glabel-v">留空则不缩放</span></label>
+        <div class="row2">
+          <div class="field">
+            <span class="field-k">宽</span>
+            <input type="number" id="maxW" min="0" step="10" placeholder="原宽" class="input" />
+          </div>
+          <div class="field">
+            <span class="field-k">高</span>
+            <input type="number" id="maxH" min="0" step="10" placeholder="原高" class="input" />
+          </div>
+        </div>
+      </div>
+
+      <div class="group">
+        <label class="toggle">
+          <input type="checkbox" id="keepMetadata" />
+          <span class="track"><span class="knob"></span></span>
+          <span class="toggle-text">保留 EXIF / ICC 元数据</span>
+        </label>
+        <label class="toggle">
+          <input type="checkbox" id="keepSmaller" checked />
+          <span class="track"><span class="knob"></span></span>
+          <span class="toggle-text">压缩后变大时保留原图</span>
+        </label>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="group">
+        <label class="glabel">输出位置</label>
+        <div class="pathbox" id="outDirBox">
+          <span class="pathbox-text" id="outDirText">—</span>
+          <button class="mini-btn" id="btnOutDir">更改</button>
+        </div>
+        <label class="toggle toggle-warn">
+          <input type="checkbox" id="overwrite" />
+          <span class="track"><span class="knob"></span></span>
+          <span class="toggle-text">直接覆盖原文件</span>
+        </label>
+        <p class="hint hint-warn" id="overwriteHint" hidden>覆盖模式不保留备份，建议先小范围试用。</p>
+      </div>
+
+      <div class="group">
+        <label class="glabel">文件名后缀 <span class="glabel-v">可留空</span></label>
+        <input type="text" id="suffix" class="input input-full" placeholder="例如 -min" />
+      </div>
+
+      <div class="group">
+        <label class="toggle">
+          <input type="checkbox" id="keepStructure" checked />
+          <span class="track"><span class="knob"></span></span>
+          <span class="toggle-text">保留原目录结构</span>
+        </label>
+        <label class="toggle">
+          <input type="checkbox" id="recursive" checked />
+          <span class="track"><span class="knob"></span></span>
+          <span class="toggle-text">包含子文件夹</span>
+        </label>
+      </div>
+
+      <div class="side-foot">
+        <p class="tiny">全部在本地完成，不上传、不联网。图片版权始终属于你。</p>
+      </div>
+    </div>
+  </aside>
+</main>
+
+<footer class="actionbar">
+  <div class="ab-progress" id="abProgress"><i id="abProgressBar"></i></div>
+  <div class="ab-left">
+    <span class="ab-sum" id="abSum">还没有选择图片</span>
+    <button class="link-btn" id="btnOpenOut" hidden>打开输出文件夹</button>
+    <button class="link-btn" id="btnReport" hidden>导出报告</button>
+  </div>
+  <div class="ab-right">
+    <button class="btn" id="btnClear" hidden>清空</button>
+    <button class="btn" id="btnCancel" hidden>取消</button>
+    <button class="btn btn-primary btn-start" id="btnStart" disabled>
+      <span id="btnStartText">开始压缩</span>
+    </button>
+  </div>
+</footer>
+
+<div class="drag-overlay" id="dragOverlay" hidden>
+  <div class="drag-card">
+    <svg viewBox="0 0 24 24" class="ico-lg"><path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <div>松手即可添加</div>
+    <div class="drag-sub">支持图片文件与整个文件夹</div>
+  </div>
+</div>
+
+<div class="toast" id="toast" hidden></div>
+
+<script src="app.js"></script>
+</body>
+</html>
