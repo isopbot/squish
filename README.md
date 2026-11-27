@@ -1,8 +1,25 @@
 # Squish
 
+[![Release](https://img.shields.io/github/v/release/isopbot/squish?label=release)](https://github.com/isopbot/squish/releases/latest)
+![platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows-blue)
+[![license](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+
 **本地批量图片压缩工具 · macOS / Windows** — 选图片或整个文件夹，一次压完，全程不上传。
 
 > 类似 TinyPNG，但所有处理都在你自己的电脑上完成：没有上传、没有张数限制、没有水印、断网也能用。
+
+## 下载
+
+到 [Releases](https://github.com/isopbot/squish/releases/latest) 下载对应安装包：
+
+| 平台 | 文件 |
+|---|---|
+| macOS（Apple Silicon / M 系列） | `Squish-1.0.0-arm64.dmg` |
+| macOS（Intel） | `Squish-1.0.0.dmg` |
+| Windows（安装版） | `Squish-Setup-1.0.0.exe` |
+| Windows（免安装） | `Squish-1.0.0-portable.exe` |
+
+安装包未做代码签名：macOS 首次打开请右键 →「打开」；Windows 遇 SmartScreen 点「更多信息 → 仍要运行」。
 
 ![界面截图](docs/screenshot-light.png)
 
@@ -19,9 +36,9 @@
 
 ## 截图
 
-| 深色模式 | 压缩完成 |
+| 压缩完成（浅色） | 深色模式 |
 |---|---|
-| ![dark](docs/screenshot-dark.png) | ![done](docs/screenshot-light.png) |
+| ![done](docs/screenshot-done.png) | ![dark](docs/screenshot-dark.png) |
 
 ## 无损是真无损吗？
 
