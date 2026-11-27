@@ -120,6 +120,8 @@ git tag v1.0.1 && git push origin v1.0.1
 
 流程：`npm run test:engine` 自测（无损被破坏或压缩后变大则中止）→ 三台 runner 并行打包（mac arm64 / mac x64 / win x64）→ 汇总上传 Release。也可以在 Actions 页面手动 `Run workflow` 触发构建（不会发版）。
 
+产物命名固定为 `Squish-<版本>-arm64.dmg` / `Squish-<版本>-x64.dmg` / `Squish-Setup-<版本>.exe` / `Squish-<版本>-portable.exe`，另附 `SHA256SUMS.txt`。流水线里有两道断言：mac 作业会挂载 dmg、windows 作业会检查 `win-unpacked`，确认 `@img` 下的 `.node` / `.dylib` 架构与目标平台一致——这一项曾经真出过问题（Intel dmg 里装了 arm64 的 sharp），现在装错会直接红掉。
+
 ## 目录结构
 
 ```
