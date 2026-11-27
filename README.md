@@ -15,7 +15,7 @@
 | 平台 | 文件 |
 |---|---|
 | macOS（Apple Silicon / M 系列） | `Squish-1.0.0-arm64.dmg` |
-| macOS（Intel） | `Squish-1.0.0.dmg` |
+| macOS（Intel） | `Squish-1.0.0-x64.dmg` |
 | Windows（安装版） | `Squish-Setup-1.0.0.exe` |
 | Windows（免安装） | `Squish-1.0.0-portable.exe` |
 

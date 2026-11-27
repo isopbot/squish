@@ -79,7 +79,8 @@
           "type": "link",
           "path": "/Applications"
         }
-      ]
+      ],
+      "artifactName": "Squish-${version}-${arch}.${ext}"
     },
     "win": {
       "target": [
@@ -101,7 +102,8 @@
       "oneClick": false,
       "perMachine": false,
       "allowToChangeInstallationDirectory": true,
-      "shortcutName": "Squish"
+      "shortcutName": "Squish",
+      "artifactName": "Squish-Setup-${version}.${ext}"
     },
     "portable": {
       "artifactName": "Squish-${version}-portable.exe"

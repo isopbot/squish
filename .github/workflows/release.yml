@@ -76,6 +76,46 @@ jobs:
           ls -lh release/*.dmg release/*.exe 2>/dev/null || true
           node scripts/native-deps.js status
 
+      # mac 包一旦装错架构的 sharp 原生库，在目标机器上会启动即崩，这里直接挂载 dmg 断言
+      - name: 校验 dmg 内的原生库架构
+        if: matrix.os == 'macos-latest'
+        shell: bash
+        run: |
+          set -euo pipefail
+          case "${{ matrix.artifact }}" in
+            mac-arm64) EXPECT=arm64 ;;
+            *)         EXPECT=x86_64 ;;
+          esac
+          echo "期望架构：$EXPECT"
+
+          for dmg in release/*.dmg; do
+            VOL=$(hdiutil attach -nobrowse -readonly "$dmg" | grep -o '/Volumes/.*' | head -1)
+            APP=$(find "$VOL" -maxdepth 1 -name '*.app' | head -1)
+            IMG="$APP/Contents/Resources/app.asar.unpacked/node_modules/@img"
+            echo "--- $(basename "$dmg") | 主程序 $(file -b "$APP/Contents/MacOS/Squish" | sed 's/.*: //;s/,.*//')"
+            echo "    @img: $(ls "$IMG" | tr '\n' ' ')"
+            fail=0
+            while IFS= read -r f; do
+              got=$(file -b "$f" | grep -o -E 'arm64|x86_64' | head -1)
+              if [ "$got" != "$EXPECT" ]; then
+                echo "✗ 架构不符：$(basename "$f") → $got（期望 $EXPECT）"
+                fail=1
+              fi
+            done < <(find "$IMG" \( -name '*.node' -o -name '*.dylib' \))
+            hdiutil detach "$VOL" -force -quiet
+            [ "$fail" = "0" ] || exit 1
+          done
+          echo "✓ dmg 内原生库架构全部匹配"
+
+      - name: 校验 Windows 包内原生库
+        if: matrix.os == 'windows-latest'
+        shell: bash
+        run: |
+          IMG=release/win-unpacked/resources/app.asar.unpacked/node_modules/@img
+          ls "$IMG"
+          [ "$(ls "$IMG")" = "sharp-win32-x64" ] || { echo "✗ 只应包含 sharp-win32-x64"; exit 1; }
+          echo "✓ Windows 包只含 win32 原生库"
+
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact }}
@@ -121,7 +161,7 @@ jobs:
             | 平台 | 文件 |
             |---|---|
             | macOS（Apple Silicon / M 系列） | `Squish-<版本>-arm64.dmg` |
-            | macOS（Intel） | `Squish-<版本>.dmg` |
+            | macOS（Intel） | `Squish-<版本>-x64.dmg` |
             | Windows（安装版） | `Squish-Setup-<版本>.exe` |
             | Windows（免安装） | `Squish-<版本>-portable.exe` |
 
@@ -146,3 +186,28 @@ jobs:
             dist/*.dmg
             dist/*.exe
             dist/SHA256SUMS.txt
+
+      # 同名附件会被上面的步骤覆盖，这份清理负责删掉历史遗留的异名附件
+      - name: 清理本轮没产出的旧附件
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TAG: ${{ github.ref_name }}
+        run: |
+          python3 - <<'PY'
+          import glob, json, os, urllib.request
+
+          repo, tag, token = os.environ['GITHUB_REPOSITORY'], os.environ['GH_TAG'], os.environ['GH_TOKEN']
+          headers = {'Authorization': f'Bearer {token}', 'Accept': 'application/vnd.github+json'}
+
+          def call(url, method='GET'):
+              return urllib.request.urlopen(urllib.request.Request(url, method=method, headers=headers))
+
+          release = json.load(call(f'https://api.github.com/repos/{repo}/releases/tags/{tag}'))
+          keep = {os.path.basename(p) for p in glob.glob('dist/*')}
+          stale = [a for a in release.get('assets', []) if a['name'] not in keep]
+          if not stale:
+              print('没有需要清理的旧附件')
+          for asset in stale:
+              call(asset['url'], 'DELETE')
+              print(f"已删除旧附件：{asset['name']}")
+          PY
