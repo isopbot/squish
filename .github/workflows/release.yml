@@ -65,7 +65,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.artifact }}-log
+          name: log-${{ matrix.artifact }}
           path: build.log
           if-no-files-found: ignore
           retention-days: 7
@@ -118,7 +118,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.artifact }}
+          name: build-${{ matrix.artifact }}
           path: |
             release/*.dmg
             release/*.exe
@@ -133,6 +133,7 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           path: dist
+          pattern: build-*
           merge-multiple: true
 
       - name: 列出待上传文件
