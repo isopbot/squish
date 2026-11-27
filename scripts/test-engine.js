@@ -17,6 +17,9 @@ const { stripJpegMetadata } = require('../src/main/jpeglossless');
 const OUT = path.join(__dirname, '..', '.samples');
 const kb = (n) => `${(n / 1024).toFixed(1)} KB`;
 
+/** CI 里靠它判定成败：无损被破坏、或压缩后反而变大，都算失败 */
+const failures = [];
+
 async function hashPixels(file) {
   const { data, info } = await sharp(file, { limitInputPixels: false })
     .ensureAlpha()
@@ -127,17 +130,23 @@ async function run(label, opts, files) {
       else if (opts.mode === 'lossless' && !isBmp && ['png', 'webp', 'avif', 'tiff'].includes(res.format)) {
         const a = await hashPixels(file);
         const b = await hashPixels(outFile);
-        losslessFlag = a.hash === b.hash && a.w === b.w ? '像素一致 ✓' : `像素变化 ✗ (${a.hash}→${b.hash})`;
+        const same = a.hash === b.hash && a.w === b.w;
+        losslessFlag = same ? '像素一致 ✓' : `像素变化 ✗ (${a.hash}→${b.hash})`;
+        if (!same) failures.push(`${label}/${name}: 无损重编码后像素变化`);
       } else if (opts.mode === 'lossless' && res.format === 'jpeg') {
         const a = await hashPixels(file);
         const b = await hashPixels(outFile);
         losslessFlag = a.hash === b.hash ? '像素一致 ✓' : '像素变化 ✗';
+        if (a.hash !== b.hash) failures.push(`${label}/${name}: 无损 JPEG 像素变化`);
+      } else if (opts.mode === 'smart' && label === 'smart-2' && ['jpeg', 'png'].includes(res.format) && after >= before) {
+        failures.push(`${label}/${name}: 智能模式下没有变小（${kb(before)} → ${kb(after)}）`);
       }
       console.log(
         `${name.padEnd(10)} ${kb(before).padStart(10)} → ${kb(after).padStart(10)}  ${(pct + '%').padStart(7)}  ${res.format.padEnd(5)} ${losslessFlag} ${res.note || ''}`
       );
     } catch (err) {
       console.log(`${name.padEnd(10)} 失败：${err.message}`);
+      failures.push(`${label}/${name}: 压缩抛错 ${err.message}`);
     }
   }
 }
@@ -164,11 +173,21 @@ async function run(label, opts, files) {
   const tmpJpg = path.join(OUT, 'stripped.jpg');
   await fs.writeFile(tmpJpg, stripped.buffer);
   const b = await hashPixels(tmpJpg);
+  const stripOk = a.hash === b.hash;
   console.log(
-    `插入 ${kb(withMeta.length)} → 剥离后 ${kb(stripped.buffer.length)}，移除 ${stripped.removed} 字节，像素${a.hash === b.hash ? '一致 ✓' : '变化 ✗'}`
+    `插入 ${kb(withMeta.length)} → 剥离后 ${kb(stripped.buffer.length)}，移除 ${stripped.removed} 字节，像素${stripOk ? '一致 ✓' : '变化 ✗'}`
   );
+  if (!stripOk) failures.push('JPEG 元数据剥离改变了像素');
+  if (stripped.removed <= 0) failures.push('JPEG 元数据剥离没有移除任何字节');
 
   console.log(`\n输出目录：${OUT}`);
+
+  if (failures.length) {
+    console.error(`\n✗ 自测失败 ${failures.length} 项：`);
+    for (const f of failures) console.error(`  - ${f}`);
+    process.exit(1);
+  }
+  console.log('\n✓ 全部通过');
 })().catch((e) => {
   console.error(e);
   process.exit(1);

@@ -1,0 +1,136 @@
+name: Build & Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  # 先跑引擎自测：无损是否真无损、压缩率是否正常，不通过就不打包
+  test:
+    name: 引擎自测
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run test:engine
+
+  build:
+    name: 构建 ${{ matrix.artifact }}
+    needs: test
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            artifact: mac-arm64
+            command: npm run dist:mac:arm64
+          - os: macos-latest
+            artifact: mac-x64
+            command: npm run dist:mac:x64
+          - os: windows-latest
+            artifact: win-x64
+            command: npm run dist:win
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: 安装依赖
+        run: npm ci
+
+      - name: 打包（自动准备/裁剪 sharp 原生依赖）
+        run: ${{ matrix.command }}
+
+      - name: 校验产物架构
+        shell: bash
+        run: |
+          ls -lh release/*.dmg release/*.exe 2>/dev/null || true
+          node scripts/native-deps.js status
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: |
+            release/*.dmg
+            release/*.exe
+          if-no-files-found: error
+          retention-days: 7
+
+  release:
+    name: 发布到 Release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: 列出待上传文件
+        run: ls -lh dist
+
+      - name: 生成校验文件
+        run: |
+          cd dist
+          sha256sum * > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: Squish ${{ github.ref_name }}
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+          make_latest: true
+          body: |
+            本地批量图片压缩工具 · 全程不上传，选图片或整个文件夹一次压完。
+
+            支持 JPEG / PNG / WebP / AVIF / GIF / TIFF / BMP / SVG 八种格式，macOS 与 Windows 双端。
+
+            ## 下载哪个
+
+            | 平台 | 文件 |
+            |---|---|
+            | macOS（Apple Silicon / M 系列） | `Squish-<版本>-arm64.dmg` |
+            | macOS（Intel） | `Squish-<版本>.dmg` |
+            | Windows（安装版） | `Squish-Setup-<版本>.exe` |
+            | Windows（免安装） | `Squish-<版本>-portable.exe` |
+
+            ## 安装提示
+
+            安装包未做代码签名（个人项目，证书成本高），首次打开会被系统拦一下：
+
+            - **macOS**：右键点击 App →「打开」→ 再点「打开」。之后可正常双击启动。
+            - **Windows**：SmartScreen 弹窗 →「更多信息」→「仍要运行」。
+
+            介意的话可以自己用源码构建：`npm install && npm run dist:mac`（或 `dist:win`）。
+
+            ## 说明
+
+            - 无损模式下 JPEG 采用字节级元数据剥离（等价 `jpegtran -copy none`），熵编码数据不变；PNG / WebP / AVIF / TIFF 为真无损重编码，SVG 走 svgo。
+            - 已是有损编码的源图（WebP / AVIF / GIF）不会重复压缩，避免体积暴涨。
+            - 兜底规则：输出体积 ≥ 原图时自动保留原图。
+            - 暂不支持 HEIC（受 HEVC 授权限制），iPhone 照片请先导出为 JPEG。
+
+            完整说明与构建文档见 [README](https://github.com/isopbot/squish#readme)。
+          files: |
+            dist/*.dmg
+            dist/*.exe
+            dist/SHA256SUMS.txt

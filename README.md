@@ -88,13 +88,37 @@ ELECTRON_MIRROR="https://cdn.npmmirror.com/binaries/electron/" npm install
 ## 打包
 
 ```bash
-npm run dist:mac   # macOS: dmg (arm64 + x64)
-npm run dist:win   # Windows: nsis 安装版 + portable 免安装版
+npm run dist:mac        # macOS: arm64 + x64 两个 dmg
+npm run dist:mac:arm64  # 只打 Apple Silicon
+npm run dist:mac:x64    # 只打 Intel
+npm run dist:win        # Windows: nsis 安装版 + portable 免安装版
 ```
 
-在 macOS 上交叉打 Windows 包时，`npm run dist:win` 会自动补装 `@img/sharp-win32-x64` 原生库（见 `scripts/prepare-win-deps.js`）。
-
 产物在 `release/`。安装包**未做代码签名**：macOS 首次打开需右键 →「打开」，Windows 会弹 SmartScreen，点「更多信息 → 仍要运行」。
+
+### 跨架构打包要注意 sharp 原生库
+
+sharp 的原生依赖（`@img/sharp-<平台>-<架构>` + libvips）只会装当前机器那一份。交叉打包时必须换掉，否则打出来的包在目标机器上一启动就崩——典型症状是 Intel dmg 里塞着 arm64 的 `.node`，或者 mac 包里带着 Windows 版 libvips。
+
+打包脚本已用 `scripts/native-deps.js` 处理：
+
+```bash
+node scripts/native-deps.js ensure darwin x64   # 缺什么补什么（npm pack 绕过平台校验）
+node scripts/native-deps.js prune  darwin x64   # 删掉其它平台的 @img 目录
+node scripts/native-deps.js status              # 看看当前装了哪些
+```
+
+`dist:mac:arm64` / `dist:mac:x64` / `dist:win` 都是「ensure → prune → electron-builder」三步。跑完 `dist:mac` 会自动 `restore:dev` 把本机（darwin-arm64）的依赖装回来；跑过 `dist:win` 之后请手动执行一次 `npm run restore:dev`，否则本机 `npm start` 会因为只剩 Windows 版 sharp 而起不来。
+
+## 自动发版（GitHub Actions）
+
+`.github/workflows/release.yml`：推 tag 即自动出包并挂到 Release。
+
+```bash
+git tag v1.0.1 && git push origin v1.0.1
+```
+
+流程：`npm run test:engine` 自测（无损被破坏或压缩后变大则中止）→ 三台 runner 并行打包（mac arm64 / mac x64 / win x64）→ 汇总上传 Release。也可以在 Actions 页面手动 `Run workflow` 触发构建（不会发版）。
 
 ## 目录结构
 
@@ -109,7 +133,8 @@ src/
 │   └── scanner.js        # 目录递归扫描与过滤
 ├── preload/index.js      # contextBridge 暴露的受限 API
 └── renderer/             # 界面（原生 HTML/CSS/JS，无框架）
-scripts/                  # 引擎自测、图标生成、跨平台依赖准备
+scripts/                  # 引擎自测、图标生成、sharp 原生依赖 ensure/prune
+.github/workflows/        # 推 tag 自动打包发版
 ```
 
 技术栈：Electron + sharp(libvips) + svgo，界面无框架、无打包步骤，改完样式刷新即可。
